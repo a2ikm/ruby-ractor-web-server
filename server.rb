@@ -1,12 +1,17 @@
 require "socket"
-server = TCPServer.new(8080)
 
 CORES = %x{sysctl -n hw.ncpu}.chomp.to_i
 
+pipe = Ractor.new do
+  loop do
+    Ractor.yield(Ractor.recv, move:true)
+  end
+end
+
 workers = CORES.times.map do
-  Ractor.new do
+  Ractor.new(pipe) do |pipe|
     loop do
-      sock = Ractor.recv
+      sock = pipe.take
 
       request = sock.gets
       puts request
@@ -21,7 +26,8 @@ workers = CORES.times.map do
   end
 end
 
+server = TCPServer.new(8080)
 loop do
   sock = server.accept
-  workers.sample.send(sock, move: true)
+  pipe.send(sock, move: true)
 end
