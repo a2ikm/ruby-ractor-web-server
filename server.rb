@@ -4,7 +4,7 @@ CORES = %x{sysctl -n hw.ncpu}.chomp.to_i
 
 pipe = Ractor.new do
   loop do
-    Ractor.yield(Ractor.recv, move:true)
+    Ractor.yield(Ractor.receive, move:true)
   end
 end
 
